@@ -35,51 +35,13 @@ interface Attendee {
 }
 
 const BrandLogo = ({ className }: { className?: string }) => (
-  <div className={cn("relative flex items-center justify-center overflow-hidden rounded-2xl bg-[#001A72] shadow-xl", className)}>
-    <svg viewBox="0 0 100 100" className="w-[90%] h-[90%]">
-      <defs>
-        <linearGradient id="teal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00E5BC" />
-          <stop offset="100%" stopColor="#00A388" />
-        </linearGradient>
-        <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00C2FF" />
-          <stop offset="100%" stopColor="#0075FF" />
-        </linearGradient>
-        <linearGradient id="orange-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFD600" />
-          <stop offset="100%" stopColor="#FF8A00" />
-        </linearGradient>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-      </defs>
-      
-      {/* Interlocking segments - simplified but accurate representation */}
-      <g filter="url(#glow)">
-        {/* Teal Segment */}
-        <path 
-          d="M45 20 C30 20, 20 30, 20 45 C20 55, 30 65, 45 65 L45 50 C45 45, 40 40, 35 40" 
-          fill="none" stroke="url(#teal-grad)" strokeWidth="14" strokeLinecap="round"
-          transform="rotate(0 50 50)"
-        />
-        {/* Blue Segment */}
-        <path 
-          d="M45 20 C30 20, 20 30, 20 45 C20 55, 30 65, 45 65 L45 50 C45 45, 40 40, 35 40" 
-          fill="none" stroke="url(#blue-grad)" strokeWidth="14" strokeLinecap="round"
-          transform="rotate(120 50 50)"
-        />
-        {/* Orange Segment */}
-        <path 
-          d="M45 20 C30 20, 20 30, 20 45 C20 55, 30 65, 45 65 L45 50 C45 45, 40 40, 35 40" 
-          fill="none" stroke="url(#orange-grad)" strokeWidth="14" strokeLinecap="round"
-          transform="rotate(240 50 50)"
-        />
-      </g>
-      
-      <circle cx="50" cy="50" r="4" fill="#001A72" />
-    </svg>
+  <div className={cn("relative flex items-center justify-center overflow-hidden rounded-2xl shadow-xl", className)}>
+    <img 
+      src="https://drive.google.com/thumbnail?id=1zBcr8zz3WUgL4yAVCbU8fMIyLiRw5ugz&sz=w500" 
+      alt="Logo"
+      className="w-full h-full object-cover"
+      referrerPolicy="no-referrer"
+    />
   </div>
 );
 
@@ -89,8 +51,25 @@ export default function App() {
   const [isPicking, setIsPicking] = useState(false);
   const [pickedAttendee, setPickedAttendee] = useState<Attendee | null>(null);
   const [showInput, setShowInput] = useState(true);
+  const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [history, setHistory] = useState<Attendee[]>([]);
   const [rollingNames, setRollingNames] = useState<string[]>([]);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (confirmReset) {
+      const timer = setTimeout(() => setConfirmReset(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmReset]);
+
+  useEffect(() => {
+    if (confirmDelete) {
+      const timer = setTimeout(() => setConfirmDelete(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmDelete]);
 
   useEffect(() => {
     const saved = localStorage.getItem('training_attendees_v2');
@@ -118,17 +97,37 @@ export default function App() {
       .map(n => n.trim())
       .filter(n => n.length > 0);
     
-    if (names.length === 0) return;
+    if (names.length === 0) {
+      if (attendees.length > 0 && confirm('هل تريد مسح جميع الأسماء؟')) {
+        setAttendees([]);
+      }
+      setShowInput(false);
+      return;
+    }
 
-    const newAttendees: Attendee[] = names.map(name => ({
-      id: Math.random().toString(36).substring(2, 9),
-      name,
-      askedCount: 0,
-    }));
+    // Preserve askedCount for existing names
+    const newAttendees: Attendee[] = names.map(name => {
+      const existing = attendees.find(a => a.name === name);
+      if (existing) return existing;
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        name,
+        askedCount: 0,
+      };
+    });
 
-    setAttendees([...attendees, ...newAttendees]);
+    setAttendees(newAttendees);
     setInputText('');
     setShowInput(false);
+  };
+
+  const toggleInput = () => {
+    if (!showInput) {
+      // Pre-fill with current names for editing
+      const currentNames = attendees.map(a => a.name).join('\n');
+      setInputText(currentNames);
+    }
+    setShowInput(!showInput);
   };
 
   const pickRandom = () => {
@@ -193,8 +192,8 @@ export default function App() {
           <div className="flex items-center gap-6">
             <BrandLogo className="w-14 h-14" />
             <div>
-              <h1 className="text-2xl font-black text-white tracking-tight leading-none mb-1">منظم الحضور الذكي</h1>
-              <p className="text-blue-200/60 text-[10px] font-bold uppercase tracking-[0.2em]">Premium Training Assistant</p>
+              <h1 className="text-2xl font-black text-white tracking-tight leading-none mb-1">Attendly Pro</h1>
+              <p className="text-blue-200/60 text-[10px] font-bold uppercase tracking-[0.2em]">أتيندلي برو - المساعد الذكي للتدريب</p>
             </div>
           </div>
 
@@ -212,38 +211,64 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setShowInput(!showInput)}
-                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-white border border-white/10 group"
-                title="إضافة أسماء"
+                onClick={toggleInput}
+                className={cn(
+                  "p-3 rounded-2xl transition-all border group",
+                  showInput 
+                    ? "bg-[#00C1A1] text-white border-[#00C1A1]" 
+                    : "bg-white/5 hover:bg-white/10 text-white border-white/10"
+                )}
+                title={showInput ? "إغلاق المحرر" : "تعديل القائمة / إضافة أسماء"}
               >
                 <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </button>
+              
               <button 
                 onClick={() => {
-                  if (confirm('هل تريد تصفير عداد المشاركات والبدء من جديد مع نفس الأسماء؟')) {
-                    setAttendees(prev => prev.map(a => ({ ...a, askedCount: 0, lastPicked: undefined })));
-                    setHistory([]);
-                    setPickedAttendee(null);
+                  if (!confirmReset) {
+                    setConfirmReset(true);
+                    return;
                   }
+                  setAttendees(prev => prev.map(a => ({ ...a, askedCount: 0, lastPicked: undefined })));
+                  setHistory([]);
+                  setPickedAttendee(null);
+                  setConfirmReset(false);
                 }}
-                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all text-[#FFB81C] border border-white/10 group"
-                title="إعادة البدء (تصفير العداد)"
+                className={cn(
+                  "h-11 rounded-2xl transition-all border group relative flex items-center gap-2 px-3",
+                  confirmReset 
+                    ? "bg-orange-500 text-white border-orange-500 w-auto" 
+                    : "bg-white/5 hover:bg-white/10 text-[#FFB81C] border-white/10 w-11"
+                )}
+                title={confirmReset ? "انقر مرة أخرى للتأكيد" : "إعادة البدء (تصفير العداد)"}
               >
-                <RotateCcw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                <RotateCcw className={cn("w-5 h-5 shrink-0 transition-transform duration-500", !confirmReset && "group-hover:rotate-180")} />
+                {confirmReset && <span className="text-xs font-black whitespace-nowrap animate-pulse">تأكيد التصفير؟</span>}
               </button>
+
               <button 
                 onClick={() => {
-                  if (confirm('هل تريد مسح جميع الأسماء والبيانات والبدء من الصفر؟')) {
-                    setAttendees([]);
-                    setHistory([]);
-                    setPickedAttendee(null);
-                    setShowInput(true);
+                  if (!confirmDelete) {
+                    setConfirmDelete(true);
+                    return;
                   }
+                  setAttendees([]);
+                  setHistory([]);
+                  setPickedAttendee(null);
+                  setShowInput(true);
+                  setInputText('');
+                  setConfirmDelete(false);
                 }}
-                className="p-3 bg-red-500/10 hover:bg-red-500/20 rounded-2xl transition-all text-red-400 border border-red-500/20 group"
-                title="مسح الكل والبدء من الصفر"
+                className={cn(
+                  "h-11 rounded-2xl transition-all border group relative flex items-center gap-2 px-3",
+                  confirmDelete 
+                    ? "bg-red-600 text-white border-red-600 w-auto" 
+                    : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 w-11"
+                )}
+                title={confirmDelete ? "انقر مرة أخرى للتأكيد" : "مسح الكل والبدء من الصفر"}
               >
-                <Trash2 className="w-5 h-5 group-hover:animate-bounce" />
+                <Trash2 className={cn("w-5 h-5 shrink-0", !confirmDelete && "group-hover:animate-bounce")} />
+                {confirmDelete && <span className="text-xs font-black whitespace-nowrap animate-pulse">تأكيد المسح؟</span>}
               </button>
             </div>
           </div>
@@ -270,17 +295,34 @@ export default function App() {
                 <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
+                  onFocus={() => setIsTextareaFocused(true)}
+                  onBlur={() => {
+                    // Small delay to allow button click before it disappears
+                    setTimeout(() => setIsTextareaFocused(false), 200);
+                  }}
                   placeholder="أدخل الأسماء هنا.. اسم في كل سطر"
                   className="w-full h-64 p-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] focus:ring-4 focus:ring-[#00C1A1]/20 focus:border-[#00C1A1] outline-none transition-all resize-none font-bold text-lg"
                 />
-                <button
-                  onClick={handleAddAttendees}
-                  disabled={!inputText.trim()}
-                  className="w-full py-5 bg-gradient-to-r from-[#001A72] to-[#00A3E0] hover:shadow-blue-200/50 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-[1.5rem] font-black text-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-                >
-                  <CheckCircle2 className="w-7 h-7" />
-                  بدء الجلسة التدريبية
-                </button>
+                
+                <AnimatePresence>
+                  {(isTextareaFocused || inputText.trim().length > 0) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: "auto", marginTop: 24 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <button
+                        onClick={handleAddAttendees}
+                        disabled={!inputText.trim()}
+                        className="w-full py-5 bg-gradient-to-r from-[#001A72] to-[#00A3E0] hover:shadow-blue-200/50 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-[1.5rem] font-black text-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                      >
+                        <CheckCircle2 className="w-7 h-7" />
+                        اعتماد القائمة والبدء
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -348,9 +390,9 @@ export default function App() {
                     <Sparkles className="w-20 h-20 text-[#FFB81C]" />
                   </motion.div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 w-full max-w-2xl px-4 mx-auto">
                     <p className="text-[#00C1A1] font-black uppercase tracking-[0.4em] text-sm">وقع الاختيار على</p>
-                    <h3 className="text-6xl md:text-9xl font-black text-white tracking-tighter drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                    <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] break-words leading-tight">
                       {pickedAttendee.name}
                     </h3>
                   </div>
@@ -469,7 +511,7 @@ export default function App() {
           </div>
 
           {/* Attendee List */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col h-[calc(100vh-32rem)]">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col h-[600px] lg:h-[calc(100vh-25rem)]">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <Users className="w-6 h-6 text-[#00A3E0]" />
@@ -488,9 +530,10 @@ export default function App() {
                     <motion.div
                       layout
                       key={attendee.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
+                      initial={{ opacity: 0, x: 30, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
                       className={cn(
                         "group p-5 rounded-3xl border transition-all flex items-center justify-between relative overflow-hidden",
                         attendee.id === pickedAttendee?.id 
@@ -529,18 +572,18 @@ export default function App() {
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: #E2E8F0;
-          border-radius: 20px;
-          border: 2px solid white;
+          border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #CBD5E1;
+          background: #00A3E0;
+          opacity: 0.8;
         }
       `}</style>
     </div>
