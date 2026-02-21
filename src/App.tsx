@@ -47,12 +47,37 @@ const BrandLogo = ({ className }: { className?: string }) => (
 
 export default function App() {
   const [inputText, setInputText] = useState('');
-  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [attendees, setAttendees] = useState<Attendee[]>(() => {
+    const saved = localStorage.getItem('training_attendees_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+        return [];
+      }
+    }
+    return [];
+  });
   const [isPicking, setIsPicking] = useState(false);
   const [pickedAttendee, setPickedAttendee] = useState<Attendee | null>(null);
-  const [showInput, setShowInput] = useState(true);
+  const [showInput, setShowInput] = useState(() => {
+    const saved = localStorage.getItem('training_attendees_v2');
+    return !saved || JSON.parse(saved).length === 0;
+  });
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
-  const [history, setHistory] = useState<Attendee[]>([]);
+  const [history, setHistory] = useState<Attendee[]>(() => {
+    const saved = localStorage.getItem('training_history_v2');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+        return [];
+      }
+    }
+    return [];
+  });
   const [rollingNames, setRollingNames] = useState<string[]>([]);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -70,21 +95,6 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [confirmDelete]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('training_attendees_v2');
-    const savedHistory = localStorage.getItem('training_history_v2');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setAttendees(parsed);
-        if (parsed.length > 0) setShowInput(false);
-      } catch (e) { console.error(e); }
-    }
-    if (savedHistory) {
-      try { setHistory(JSON.parse(savedHistory)); } catch (e) { console.error(e); }
-    }
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('training_attendees_v2', JSON.stringify(attendees));
@@ -533,12 +543,13 @@ export default function App() {
                       initial={{ opacity: 0, x: 30, scale: 0.95 }}
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                      whileHover={{ scale: 1.01, x: -4 }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
                       className={cn(
-                        "group p-5 rounded-3xl border transition-all flex items-center justify-between relative overflow-hidden",
+                        "group p-4 rounded-2xl border transition-all flex items-center justify-between relative overflow-hidden cursor-default",
                         attendee.id === pickedAttendee?.id 
-                          ? "bg-blue-50 border-blue-200 ring-4 ring-blue-500/10" 
-                          : "bg-white border-slate-100 hover:border-blue-200 hover:shadow-md"
+                          ? "bg-blue-50 border-blue-300 ring-4 ring-blue-500/10 shadow-lg" 
+                          : "bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/80 hover:shadow-sm"
                       )}
                     >
                       <div className="flex items-center gap-4">
